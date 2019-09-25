@@ -1,0 +1,190 @@
+---
+title: "p8105_hw2_ym2771"
+author: "Yuqi Miao"
+date: "9/24/2019"
+output: github_document
+---
+
+# Problem 1
+
+## Read and clean the Mr. Trash Wheel sheet:
+```{r message=FALSE}
+library(tidyverse)
+library(readxl)
+```
+
+```{r}
+Mr_trash_wheel <- 
+    read_excel('data/HealthyHarborWaterWheelTotals2018-7-28.xlsx', sheet = 1, range = "A2:N338") %>% 
+    janitor::clean_names() %>%
+    drop_na() %>% 
+    mutate(sports_balls = as.integer(round(sports_balls, digits = 0)))
+
+    
+## omit rows that do not include dumpster-specific data     
+  
+## round the number of sports balls to the nearest integer and converts the result to an integer variable?    
+```
+
+
+## Read and clean precipitation data for 2017 and 2018
+
+```{r}
+precip_2017 <- 
+    read_excel("data/HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 4, range = "A2:B14") %>% 
+    mutate(Year = 2017) %>% 
+    select(Year, everything()) %>% 
+    drop_na()
+    
+precip_2018 <- 
+    read_excel("data/HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 3, range = "A2:B14") %>% 
+    mutate(Year = 2018) %>% 
+    select(Year, everything()) %>% 
+    drop_na()
+```
+
+## Next, combine precipitation datasets and convert month to a character variable
+
+```{r}
+precip_data <- 
+    rbind(precip_2017,precip_2018) %>% 
+    mutate(Month = month.name[Month])
+```
+
+
+* The total precipitation in 2018 is `r sum(precip_2017 %>% pull(Total))`
+
+* The median number of sports balls in a dumpster in 2017 is `r median(Mr_trash_wheel %>% pull(sports_balls))`
+
+
+# Problem 2
+
+## First, clean the data in pols-month.csv.
+
+```{r}
+pols_month <- 
+    read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>% 
+    separate(col = mon, into = c("year","month","day"), sep = "-") %>%
+    mutate(year = as.numeric(year),month = as.numeric(month)) %>% 
+    arrange(year, month) %>% 
+    mutate(month = month.name[month]) %>%
+    pivot_longer(cols = c(prez_gop, prez_dem),names_to = "president", names_prefix = "prez_",values_to = "value") %>% 
+    filter(value == 1) %>% 
+    select(-value,-day)
+
+
+
+```
+
+
+## Second, clean the data in snp.csv
+```{r}
+snp <- read_csv("data/fivethirtyeight_datasets/snp.csv") %>%
+    separate(col = date, into = c("month","day","year"), sep = "/") %>%
+    mutate(year = as.numeric(year),month = as.numeric(month)) %>% 
+    arrange(year, month) %>% 
+    mutate(month = month.name[month]) %>%
+    select(year, month, everything(), -day)
+
+
+    
+```
+
+
+## Third, tidy the unemployment data
+
+```{r}
+unemployment <- 
+    read_csv("data/fivethirtyeight_datasets/unemployment.csv") %>%
+    mutate(year = Year) %>%
+    pivot_longer(cols = Jan:Dec, names_to = "month", values_to = "unemployment_rate") %>%
+    mutate(year = as.numeric(year), month = match(month, month.abb)) %>% 
+    arrange(year,month) %>% 
+    mutate(month = month.name[month]) %>%
+    select(year, month, everything(),-Year)
+
+```
+
+## Finally, merging data
+
+```{r}
+FiveThirtyEight <- 
+    left_join(pols_month, snp)
+FiveThirtyEight <- 
+    left_join(FiveThirtyEight, unemployment) 
+
+```
+
+* The first data frame "pols_month" is the basic data frame with `r nrow(pols_month)` rows * `r ncol(pols_month)` columns, the range of year is from `r range(pols_month %>% pull(year))[1]` to `r range(pols_month %>% pull(year))[2]`, and the names of the key variables are `r names(pols_month)[3:9]`
+
+* The second data frame "snp" has the dimension of `r nrow(snp)` rows * `r ncol(snp)` columns, the range of year is from `r range(snp %>% pull(year))[1]` to `r range(snp %>% pull(year))[2]`, and the names of the key variables are `r names(snp)[3]`
+
+* The third data frame "unemployment" has `r nrow(unemployment)` rows * `r ncol(unemployment)` columns, the range of year is from `r range(unemployment %>% pull(year))[1]` to `r range(unemployment %>% pull(year))[2]`, and the names of the key variables are `r names(unemployment)[3]`
+
+* By merging snp and unemployment data into pols_month, we have the final dataset, FiveThirtyEight, with `r nrow(unemployment)` rows * `r ncol(unemployment)` columns, for the range of the year in different set is different, some values are missing.
+
+
+
+
+
+# Problem 3
+
+## Load and tidy the data.
+```{r}
+pop_bb_name <- 
+    read_csv("data/Popular_Baby_Names.csv") %>% 
+    janitor::clean_names() %>% 
+    mutate(ethnicity = recode(ethnicity,`ASIAN AND PACIFIC ISLANDER` = "ASIAN AND PACI", `BLACK NON HISPANIC` = "BLACK NON HISP", `WHITE NON HISPANIC` = "WHITE NON HISP")) %>%
+    mutate(childs_first_name = str_to_title(childs_first_name)) %>% 
+    distinct()
+```
+
+
+Produce a table showing the rank in popularity of the name “Olivia”
+```{r}
+Olivia <-
+    pop_bb_name %>% 
+    filter(gender == "FEMALE" & childs_first_name == "Olivia") %>%
+    pivot_wider(names_from = year_of_birth, values_from = rank,id_cols = ethnicity)
+    
+```
+
+## Produce a similar table showing the most popular name among male children over time.
+
+
+```{r}
+## find the most popular male children name.
+name_freq <- 
+    pop_bb_name %>% 
+    filter(gender == "MALE") %>% 
+    group_by(childs_first_name) %>% 
+    summarise(frequency = sum(count))
+```
+
+The most frequent name among boys is `r name_freq[which.max(name_freq$frequency),1]`
+
+
+```{r}
+Ethan <- 
+    pop_bb_name %>% 
+    filter(gender == "MALE" & childs_first_name == "Ethan") %>%
+    pivot_wider(names_from = year_of_birth, values_from = rank,id_cols = ethnicity)
+```
+
+
+## plotting
+```{r}
+plot_data <- 
+    pop_bb_name %>% 
+    filter(year_of_birth == "2016" & ethnicity == "WHITE NON HISP")
+
+g <- ggplot(data = plot_data, aes(x= rank, y = count))
+g + geom_point()+xlab( "rank of the names")+ ylab( "number of children with a name")
+```
+
+
+
+
+
+
+
