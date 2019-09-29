@@ -52,7 +52,7 @@ precip_data <-
 ```
 
 
-* The total precipitation in 2018 is `r sum(precip_2017 %>% pull(Total))`
+* The total precipitation in 2018 is `r sum(precip_2018 %>% pull(Total))`
 
 * The median number of sports balls in a dumpster in 2017 is `r median(Mr_trash_wheel %>% pull(sports_balls))`
 
@@ -69,7 +69,7 @@ pols_month <-
     arrange(year, month) %>% 
     mutate(month = month.name[month]) %>%
     pivot_longer(cols = c(prez_gop, prez_dem),names_to = "president", names_prefix = "prez_",values_to = "value") %>% 
-    filter(value == 1) %>% 
+    filter(value != 0) %>% 
     select(-value,-day)
 
 
@@ -151,24 +151,13 @@ Olivia <-
 
 ## Produce a similar table showing the most popular name among male children over time.
 
-
 ```{r}
-## find the most popular male children name.
-name_freq <- 
-    pop_bb_name %>% 
-    filter(gender == "MALE") %>% 
-    group_by(childs_first_name) %>% 
-    summarise(frequency = sum(count))
-```
-
-The most frequent name among boys is `r name_freq[which.max(name_freq$frequency),1]`
-
-
-```{r}
-Ethan <- 
-    pop_bb_name %>% 
-    filter(gender == "MALE" & childs_first_name == "Ethan") %>%
-    pivot_wider(names_from = year_of_birth, values_from = rank,id_cols = ethnicity)
+most_pop_male_name <- 
+  pop_bb_name %>% 
+  filter(gender == "MALE") %>%
+  group_by(ethnicity, year_of_birth) %>%
+  summarise(name = childs_first_name[match(max(count), count)]) %>%
+  pivot_wider(names_from = year_of_birth, values_from = name, id_cols = ethnicity)
 ```
 
 
@@ -176,7 +165,7 @@ Ethan <-
 ```{r}
 plot_data <- 
     pop_bb_name %>% 
-    filter(year_of_birth == "2016" & ethnicity == "WHITE NON HISP")
+    filter(year_of_birth == "2016" & ethnicity == "WHITE NON HISP" & gender == "FEMALE")
 
 g <- ggplot(data = plot_data, aes(x= rank, y = count))
 g + geom_point()+xlab( "rank of the names")+ ylab( "number of children with a name")
