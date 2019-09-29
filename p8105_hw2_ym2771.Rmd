@@ -11,6 +11,7 @@ output: github_document
 ```{r message=FALSE}
 library(tidyverse)
 library(readxl)
+library(ggrepel)
 ```
 
 ```{r}
@@ -25,7 +26,8 @@ Mr_trash_wheel <-
   
 ## round the number of sports balls to the nearest integer and converts the result to an integer variable?    
 ```
-
+Data description:
+This dataset has `r nrow(Mr_trash_wheel)` observations and `r ncol(Mr_trash_wheel)`varaibles, and giving information on the dumpter number(`r colnames(Mr_trash_wheel)[1]`), date of collection(`r colnames(Mr_trash_wheel)[2:4]`), amount of total litter(`r colnames(Mr_trash_wheel)[5:6]`), litter type(`r colnames(Mr_trash_wheel)[c(7:length(Mr_trash_wheel)-1)]`) and efficiency of generating power(`r colnames(Mr_trash_wheel)[length(Mr_trash_wheel)]`). 
 
 ## Read and clean precipitation data for 2017 and 2018
 
@@ -51,6 +53,7 @@ precip_data <-
     mutate(Month = month.name[Month])
 ```
 
+This dataset contains `r nrow(precip_data)` observations and `r ncol(precip_data)` variables, giving information on monthly total precipitation (`r names(precip_data)[3]`) in 2017-2018.
 
 * The total precipitation in 2018 is `r sum(precip_2018 %>% pull(Total))`
 
@@ -121,7 +124,7 @@ FiveThirtyEight <-
 
 * The third data frame "unemployment" has `r nrow(unemployment)` rows * `r ncol(unemployment)` columns, the range of year is from `r range(unemployment %>% pull(year))[1]` to `r range(unemployment %>% pull(year))[2]`, and the names of the key variables are `r names(unemployment)[3]`
 
-* By merging snp and unemployment data into pols_month, we have the final dataset, FiveThirtyEight, with `r nrow(unemployment)` rows * `r ncol(unemployment)` columns, for the range of the year in different set is different, some values are missing.
+* By merging snp and unemployment data into pols_month, we have the final dataset, FiveThirtyEight, with `r nrow(FiveThirtyEight)` rows * `r ncol(FiveThirtyEight)` columns, the range of year is from `r range(FiveThirtyEight %>% pull(year))[1]` to `r range(FiveThirtyEight %>% pull(year))[2]`,for the range of the year in different set is different, some values are missing.
 
 
 
@@ -146,7 +149,8 @@ Olivia <-
     pop_bb_name %>% 
     filter(gender == "FEMALE" & childs_first_name == "Olivia") %>%
     pivot_wider(names_from = year_of_birth, values_from = rank,id_cols = ethnicity)
-    
+
+knitr::kable(x = Olivia, caption = " Table 1: The rank the name “Olivia” as a female baby name over time" )    
 ```
 
 ## Produce a similar table showing the most popular name among male children over time.
@@ -158,6 +162,7 @@ most_pop_male_name <-
   group_by(ethnicity, year_of_birth) %>%
   summarise(name = childs_first_name[match(max(count), count)]) %>%
   pivot_wider(names_from = year_of_birth, values_from = name, id_cols = ethnicity)
+knitr::kable(x = most_pop_male_name, caption = "Table 2: The most popular male name of male baby name over time" )    
 ```
 
 
@@ -165,10 +170,19 @@ most_pop_male_name <-
 ```{r}
 plot_data <- 
     pop_bb_name %>% 
-    filter(year_of_birth == "2016" & ethnicity == "WHITE NON HISP" & gender == "FEMALE")
+    filter(year_of_birth == "2016" & ethnicity == "WHITE NON HISP" & gender == "MALE")
+  
 
-g <- ggplot(data = plot_data, aes(x= rank, y = count))
-g + geom_point()+xlab( "rank of the names")+ ylab( "number of children with a name")
+g <- ggplot(data = plot_data, aes(x= rank, y = count, label = childs_first_name)) +
+    geom_point(color = ifelse(plot_data$rank > 10, "grey50","red")) +
+  geom_text_repel(
+    data = subset(plot_data, rank <= 10),
+    nudge_x = 50,
+    direction = "y",
+    segment.size = 0.2
+  ) +
+  xlab("rank of the names")+ ylab("number of children with a name") 
+g
 ```
 
 
