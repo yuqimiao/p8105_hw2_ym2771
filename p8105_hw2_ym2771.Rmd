@@ -176,7 +176,7 @@ plot_data <-
     filter(year_of_birth == "2016" & ethnicity == "WHITE NON HISP" & gender == "MALE")
   
 
-g <- ggplot(data = plot_data, aes(x= rank, y = count, label = childs_first_name)) +
+g <- ggplot(data = plot_data, aes(x= rank, y = count)) +
     geom_point(color = ifelse(plot_data$rank > 10, "grey50","red")) 
 g
 ```
